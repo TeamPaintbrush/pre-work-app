@@ -1,6 +1,10 @@
 # The Pre-Work App - Advanced Field Operations Platform 📋
 
-A comprehensive field operations and checklist management platform designed for teams, contractors, and field workers. Built with Next.js 14, React 18, and TypeScript for maximum performance and reliability.
+# The Pre-Work App - Checklist Management System
+
+A comprehensive React-based checklist management system designed specifically for cleaning and maintenance pre-work processes.
+
+🚀 **Live Demo**: [https://teampaintbrush.github.io/pre-work-app/](https://teampaintbrush.github.io/pre-work-app/)
 
 > **📖 For detailed feature documentation, see [FEATURES.md](./FEATURES.md)**
 
