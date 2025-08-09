@@ -3,8 +3,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { ProgressBarProps } from '../../types';
+import { useMobileDetection } from '../../hooks/useMobile';
 
 const ProgressBar: React.FC<ProgressBarProps> = ({ progress, className = '' }) => {
+  const { isMobile } = useMobileDetection();
   const { totalItems, completedItems, requiredItems, completedRequiredItems, percentage } = progress;
 
   const getProgressColor = () => {
@@ -36,17 +38,17 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ progress, className = '' }) =
       {/* Overall Progress */}
       <div>
         <div className="flex justify-between items-center mb-2">
-          <span className="text-sm font-medium text-gray-700">
+          <span className={`font-medium text-gray-700 ${isMobile ? 'text-xs' : 'text-sm'}`}>
             Overall Progress
           </span>
           <motion.span 
-            className="text-sm text-gray-600"
+            className={`text-gray-600 ${isMobile ? 'text-xs' : 'text-sm'}`}
             key={`${completedItems}-${totalItems}`}
             initial={{ scale: 1.1, color: '#10B981' }}
             animate={{ scale: 1, color: '#4B5563' }}
             transition={{ duration: 0.3 }}
           >
-            {completedItems}/{totalItems} tasks ({percentage}%)
+            {isMobile ? `${completedItems}/${totalItems}` : `${completedItems}/${totalItems} tasks (${percentage}%)`}
           </motion.span>
           {percentage === 100 && (
             <motion.span

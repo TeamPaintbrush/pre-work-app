@@ -1,9 +1,13 @@
+"use client";
+
 import React from 'react';
+import { motion } from 'framer-motion';
 import { ChecklistSectionProps } from '../../types';
 import ChecklistItem from './ChecklistItem';
 import ProgressBar from './ProgressBar';
 import Button from '../UI/Button';
 import { calculateProgress } from '../../data/presetChecklists';
+import { useMobileDetection } from '../../hooks/useMobile';
 
 const ChecklistSection: React.FC<ChecklistSectionProps> = ({ 
   section, 
@@ -12,6 +16,8 @@ const ChecklistSection: React.FC<ChecklistSectionProps> = ({
   onToggleComplete,
   onAddItem
 }) => {
+  const { isTouch, isMobile } = useMobileDetection();
+  
   const sectionProgress = calculateProgress({
     id: section.id,
     title: section.title,
@@ -30,16 +36,27 @@ const ChecklistSection: React.FC<ChecklistSectionProps> = ({
   const completedRequiredCount = section.items.filter(item => item.isRequired && item.isCompleted).length;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+    <motion.div 
+      className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
       {/* Section Header */}
-      <div 
-        className="px-6 py-4 bg-gray-50 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
+      <motion.div 
+        className={`px-4 sm:px-6 py-4 bg-gray-50 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors ${
+          isTouch ? 'min-h-[60px]' : ''
+        }`}
         onClick={() => onToggleSection(section.id)}
+        whileTap={{ scale: 0.98 }}
       >
         <div className="flex items-center justify-between">
           <div className="flex-grow">
             <div className="flex items-center space-x-3">
-              <button className="focus:outline-none">
+              <motion.button 
+                className={`focus:outline-none ${isTouch ? 'p-2' : 'p-1'}`}
+                whileTap={{ scale: 0.9 }}
+              >
                 <svg
                   className={`w-5 h-5 text-gray-500 transition-transform ${
                     section.isCollapsed ? '' : 'rotate-90'
@@ -50,12 +67,12 @@ const ChecklistSection: React.FC<ChecklistSectionProps> = ({
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
-              </button>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">
+              </motion.button>
+              <div className="min-w-0 flex-1">
+                <h3 className={`font-semibold text-gray-900 ${isMobile ? 'text-base' : 'text-lg'}`}>
                   {section.title}
                 </h3>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className={`text-gray-600 mt-1 ${isMobile ? 'text-xs' : 'text-sm'} truncate`}>
                   {section.description}
                 </p>
               </div>
@@ -63,23 +80,25 @@ const ChecklistSection: React.FC<ChecklistSectionProps> = ({
           </div>
           
           {/* Section Progress Indicator */}
-          <div className="flex items-center space-x-4">
+          <div className={`flex items-center ${isMobile ? 'space-x-2' : 'space-x-4'}`}>
             <div className="text-right">
-              <div className="text-sm font-medium text-gray-900">
+              <div className={`font-medium text-gray-900 ${isMobile ? 'text-xs' : 'text-sm'}`}>
                 {completedCount}/{section.items.length}
               </div>
-              <div className="text-xs text-gray-500">
-                {requiredCount > 0 && (
-                  <span className="text-red-600">
-                    {completedRequiredCount}/{requiredCount} required
-                  </span>
-                )}
-              </div>
+              {!isMobile && (
+                <div className="text-xs text-gray-500">
+                  {requiredCount > 0 && (
+                    <span className="text-red-600">
+                      {completedRequiredCount}/{requiredCount} required
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
             
             {/* Mini Progress Ring */}
-            <div className="relative w-12 h-12">
-              <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+            <div className={`relative ${isMobile ? 'w-8 h-8' : 'w-12 h-12'}`}>
+              <svg className={`${isMobile ? 'w-8 h-8' : 'w-12 h-12'} transform -rotate-90`} viewBox="0 0 36 36">
                 <path
                   className="text-gray-200"
                   stroke="currentColor"
@@ -100,25 +119,31 @@ const ChecklistSection: React.FC<ChecklistSectionProps> = ({
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-xs font-medium text-gray-700">
+                <span className={`font-medium text-gray-700 ${isMobile ? 'text-xs' : 'text-xs'}`}>
                   {sectionProgress.percentage}%
                 </span>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Section Content */}
       {!section.isCollapsed && (
-        <div className="divide-y divide-gray-100">
+        <motion.div 
+          className="divide-y divide-gray-100"
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.3 }}
+        >
           {/* Progress Bar */}
-          <div className="px-6 py-4 bg-gray-25">
+          <div className={`bg-gray-25 ${isMobile ? 'px-4 py-3' : 'px-6 py-4'}`}>
             <ProgressBar progress={sectionProgress} />
           </div>
           
           {/* Items List */}
-          <div className="p-6 space-y-4">
+          <div className={`space-y-4 ${isMobile ? 'p-4' : 'p-6'}`}>
             {section.items.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -162,21 +187,26 @@ const ChecklistSection: React.FC<ChecklistSectionProps> = ({
               </>
             )}
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Section Footer (when collapsed) */}
       {section.isCollapsed && completedCount === section.items.length && section.items.length > 0 && (
-        <div className="px-6 py-2 bg-green-50 border-t border-green-200">
+        <motion.div 
+          className="px-6 py-2 bg-green-50 border-t border-green-200"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
           <div className="flex items-center justify-center text-green-700">
             <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
             <span className="text-sm font-medium">Section Complete!</span>
           </div>
-        </div>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 };
 

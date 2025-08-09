@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChecklistItemProps } from '../../types';
 import Button from '../UI/Button';
 import { itemVariants, cardHoverVariants } from '../Animation/AnimationProvider';
+import { useMobileDetection, useSwipeGesture, useLongPress, useVibration } from '../../hooks/useMobile';
 
 const ChecklistItem: React.FC<ChecklistItemProps> = ({ 
   item, 
@@ -15,8 +16,38 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [notes, setNotes] = useState(item.notes);
+  const [showSwipeHint, setShowSwipeHint] = useState(false);
+  
+  const itemRef = useRef<HTMLDivElement>(null);
+  const { isMobile, isTouch } = useMobileDetection();
+  const { vibrate } = useVibration();
+
+  // Mobile swipe gestures
+  useSwipeGesture(itemRef, ({ direction }) => {
+    if (!isMobile) return;
+    
+    if (direction === 'right' && !item.isCompleted) {
+      handleToggleComplete();
+      vibrate(50); // Short haptic feedback
+    } else if (direction === 'left') {
+      setIsExpanded(!isExpanded);
+    }
+  });
+
+  // Long press for mobile context menu
+  const longPressProps = useLongPress(() => {
+    if (isMobile) {
+      vibrate(100); // Longer haptic for long press
+      setIsExpanded(true);
+      setShowSwipeHint(true);
+      setTimeout(() => setShowSwipeHint(false), 3000);
+    }
+  }, 500);
 
   const handleToggleComplete = () => {
+    if (isMobile) {
+      vibrate(item.isCompleted ? 30 : 50); // Different feedback for complete/incomplete
+    }
     onToggleComplete(item.id);
     if (!item.isCompleted) {
       onUpdate(item.id, { completedAt: new Date() });
@@ -70,16 +101,34 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
 
   return (
     <motion.div 
-      className={`border rounded-lg p-4 transition-all duration-200 ${
+      ref={itemRef}
+      className={`border rounded-lg transition-all duration-200 relative overflow-hidden ${
         item.isCompleted ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'
-      } ${item.isRequired ? 'border-l-4 border-l-red-500' : ''}`}
+      } ${item.isRequired ? 'border-l-4 border-l-red-500' : ''} ${
+        isMobile ? 'p-3' : 'p-4'
+      }`}
       variants={itemVariants}
       initial="hidden"
       animate="visible"
       whileHover={cardHoverVariants.hover}
       layout
+      {...(isMobile ? longPressProps : {})}
     >
       
+      {/* Swipe Hint for Mobile */}
+      <AnimatePresence>
+        {showSwipeHint && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded z-10"
+          >
+            👆 Long press • Swipe right ✓ • Swipe left ➤
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Main Item Row */}
       <div className="flex items-start space-x-3">
         <div className="flex-shrink-0 pt-1">
@@ -87,14 +136,16 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
             type="checkbox"
             checked={item.isCompleted}
             onChange={handleToggleComplete}
-            className="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+            className={`${isTouch ? 'w-6 h-6' : 'w-5 h-5'} text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 ${
+              isTouch ? 'min-h-[24px] min-w-[24px]' : ''
+            }`}
           />
         </div>
         
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <p className={`text-lg font-medium ${
+              <p className={`${isMobile ? 'text-base' : 'text-lg'} font-medium ${
                 item.isCompleted ? 'line-through text-gray-500' : 'text-gray-900'
               }`}>
                 {item.text}
@@ -107,7 +158,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
               )}
               
               {/* Priority and Requirements indicators */}
-              <div className="flex items-center space-x-2 mt-2">
+              <div className="flex items-center space-x-2 mt-2 flex-wrap">
                 {item.isRequired && (
                   <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
                     Required
@@ -139,9 +190,13 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
               )}
             </div>
             
-            <button
+            <motion.button
               onClick={() => setIsExpanded(!isExpanded)}
-              className="ml-2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+              className={`ml-2 p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-md ${
+                isTouch ? 'min-h-[44px] min-w-[44px]' : ''
+              }`}
+              whileTap={{ scale: 0.95 }}
+              aria-label={isExpanded ? 'Collapse details' : 'Expand details'}
             >
               <svg 
                 className={`w-5 h-5 transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
@@ -151,7 +206,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
-            </button>
+            </motion.button>
           </div>
         </div>
       </div>
