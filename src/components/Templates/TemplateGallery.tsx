@@ -128,7 +128,7 @@ const TemplateGallery: React.FC<TemplateGalleryProps> = ({
             
             <select
               value={difficultyFilter}
-              onChange={(e) => setDifficultyFilter(e.target.value as any)}
+              onChange={(e) => setDifficultyFilter(e.target.value as 'all' | 'easy' | 'medium' | 'hard')}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-600 dark:text-white"
             >
               <option value="all">All Difficulties</option>
@@ -139,7 +139,7 @@ const TemplateGallery: React.FC<TemplateGalleryProps> = ({
             
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
+              onChange={(e) => setSortBy(e.target.value as 'name' | 'duration' | 'difficulty' | 'recent')}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-600 dark:text-white"
             >
               <option value="name">Sort by Name</option>
