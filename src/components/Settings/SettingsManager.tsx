@@ -148,6 +148,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({
   const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [resetConfirmation, setResetConfirmation] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
   const { announce } = useAriaLiveRegion();
@@ -157,6 +158,31 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({
     setLocalSettings(settings);
     setHasUnsavedChanges(false);
   }, [settings]);
+
+  // Enhanced keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Alt + number keys for quick tab switching
+      if (event.altKey && event.key >= '1' && event.key <= '6') {
+        event.preventDefault();
+        const tabIndex = parseInt(event.key) - 1;
+        const tabKeys = ['general', 'accessibility', 'notifications', 'export', 'privacy', 'advanced'] as const;
+        if (tabKeys[tabIndex]) {
+          setActiveTab(tabKeys[tabIndex]);
+          announce(`Switched to ${tabKeys[tabIndex]} settings`, 'polite');
+        }
+      }
+      
+      // Ctrl + S to save settings
+      if (event.ctrlKey && event.key === 's' && hasUnsavedChanges) {
+        event.preventDefault();
+        saveSettings();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [hasUnsavedChanges]);
 
   const updateSetting = (category: keyof AppSettings, key: string, value: any) => {
     const newSettings = {
@@ -183,20 +209,26 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({
   };
 
   const resetToDefaults = () => {
+    if (resetConfirmation !== 'RESET') {
+      announce('Please type RESET to confirm', 'assertive');
+      return;
+    }
+    
     onResetSettings();
     setLocalSettings(defaultSettings);
     setHasUnsavedChanges(false);
     setIsResetModalOpen(false);
-    announce('Settings reset to defaults', 'polite');
+    setResetConfirmation('');
+    announce('All settings have been reset to their default values', 'polite');
   };
 
   const tabs = [
-    { key: 'general', label: 'General', icon: '⚙️' },
-    { key: 'accessibility', label: 'Accessibility', icon: '♿' },
-    { key: 'notifications', label: 'Notifications', icon: '🔔' },
-    { key: 'export', label: 'Export', icon: '📤' },
-    { key: 'privacy', label: 'Privacy', icon: '🔒' },
-    { key: 'advanced', label: 'Advanced', icon: '🔧' }
+    { key: 'general', label: 'General', icon: '⚙️', shortcut: 'Alt+1' },
+    { key: 'accessibility', label: 'Accessibility', icon: '♿', shortcut: 'Alt+2' },
+    { key: 'notifications', label: 'Notifications', icon: '🔔', shortcut: 'Alt+3' },
+    { key: 'export', label: 'Export', icon: '📤', shortcut: 'Alt+4' },
+    { key: 'privacy', label: 'Privacy', icon: '🔒', shortcut: 'Alt+5' },
+    { key: 'advanced', label: 'Advanced', icon: '🔧', shortcut: 'Alt+6' }
   ] as const;
 
   const filteredTabs = searchQuery
@@ -243,31 +275,66 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8">
-        {/* Sidebar */}
+        {/* Enhanced Sidebar Navigation */}
         <div className="lg:w-64 flex-shrink-0">
-          <nav className="space-y-1" role="tablist" aria-orientation="vertical">
-            {filteredTabs.map((tab) => (
+          <nav className="space-y-1" role="tablist" aria-orientation="vertical" aria-label="Settings categories">
+            {filteredTabs.map((tab, index) => (
               <button
                 key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                onClick={() => {
+                  setActiveTab(tab.key);
+                  announce(`Switched to ${tab.label} settings`, 'polite');
+                }}
+                onKeyDown={(e) => {
+                  // Arrow key navigation
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    const nextIndex = (index + 1) % filteredTabs.length;
+                    const nextButton = document.querySelector(`[data-tab="${filteredTabs[nextIndex].key}"]`) as HTMLButtonElement;
+                    nextButton?.focus();
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    const prevIndex = index === 0 ? filteredTabs.length - 1 : index - 1;
+                    const prevButton = document.querySelector(`[data-tab="${filteredTabs[prevIndex].key}"]`) as HTMLButtonElement;
+                    prevButton?.focus();
+                  }
+                }}
+                className={`w-full flex items-center justify-between px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none ${
                   activeTab === tab.key
                     ? prefersHighContrast
-                      ? 'bg-gray-900 text-white'
-                      : 'bg-blue-100 text-blue-700'
+                      ? 'bg-gray-900 text-white border-2 border-gray-700'
+                      : 'bg-blue-100 text-blue-700 border-2 border-blue-200'
                     : prefersHighContrast
-                    ? 'text-gray-900 hover:bg-gray-100'
-                    : 'text-gray-600 hover:bg-gray-50'
+                    ? 'text-gray-900 hover:bg-gray-100 border-2 border-transparent'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-2 border-transparent'
                 }`}
                 role="tab"
                 aria-selected={activeTab === tab.key}
                 aria-controls={`${tab.key}-panel`}
+                data-tab={tab.key}
+                title={`${tab.label} settings (${tab.shortcut})`}
               >
-                <span className="mr-3" aria-hidden="true">{tab.icon}</span>
-                {tab.label}
+                <div className="flex items-center">
+                  <span className="mr-3 text-lg" aria-hidden="true">{tab.icon}</span>
+                  <span>{tab.label}</span>
+                </div>
+                <span className="text-xs text-gray-400 hidden lg:block" aria-label={`Keyboard shortcut: ${tab.shortcut}`}>
+                  {tab.shortcut}
+                </span>
               </button>
             ))}
           </nav>
+
+          {/* Keyboard shortcuts help */}
+          <div className="mt-6 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-xs text-gray-600 dark:text-gray-400">
+            <h4 className="font-medium mb-2">Keyboard Shortcuts:</h4>
+            <ul className="space-y-1">
+              <li>• Alt + 1-6: Switch tabs</li>
+              <li>• Ctrl + S: Save changes</li>
+              <li>• ↑↓ arrows: Navigate tabs</li>
+              <li>• Tab: Navigate controls</li>
+            </ul>
+          </div>
 
           {/* Quick Actions */}
           <div className="mt-8 space-y-2">
@@ -380,21 +447,47 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({
               </AnimatePresence>
             </div>
 
-            {/* Actions */}
+            {/* Enhanced Actions Bar for Unsaved Changes */}
             {hasUnsavedChanges && (
-              <div className="px-6 py-4 bg-yellow-50 border-t border-yellow-200">
+              <div 
+                className="px-6 py-4 bg-yellow-50 border-t border-yellow-200"
+                role="alert"
+                aria-live="polite"
+                aria-label="Unsaved changes notification"
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center text-sm text-yellow-800">
-                    <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg 
+                      className="w-5 h-5 mr-2" 
+                      fill="none" 
+                      viewBox="0 0 24 24" 
+                      stroke="currentColor"
+                      aria-hidden="true"
+                    >
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z" />
                     </svg>
-                    You have unsaved changes
+                    <span>
+                      You have unsaved changes in your settings
+                    </span>
                   </div>
                   <div className="flex space-x-3">
-                    <Button variant="outline" size="sm" onClick={discardChanges}>
-                      Discard
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={discardChanges}
+                      className="focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2"
+                      aria-label="Discard all unsaved changes"
+                    >
+                      Discard Changes
                     </Button>
-                    <Button variant="primary" size="sm" onClick={saveSettings}>
+                    <Button 
+                      variant="primary" 
+                      size="sm" 
+                      onClick={saveSettings}
+                      className="focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                      aria-label="Save all changes (Ctrl+S)"
+                      title="Keyboard shortcut: Ctrl+S"
+                    >
                       Save Changes
                     </Button>
                   </div>
@@ -405,37 +498,104 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({
         </div>
       </div>
 
-      {/* Reset Confirmation Modal */}
+      {/* Enhanced Reset Confirmation Modal */}
       <Modal
         isOpen={isResetModalOpen}
-        onClose={() => setIsResetModalOpen(false)}
-        title="Reset Settings"
+        onClose={() => {
+          setIsResetModalOpen(false);
+          setResetConfirmation('');
+        }}
+        title="Reset All Settings to Defaults"
         size="md"
       >
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div className="flex items-start space-x-3">
             <div className="flex-shrink-0">
-              <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg 
+                className="w-8 h-8 text-red-600" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+                aria-hidden="true"
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
             </div>
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3" id="reset-modal-title">
                 Are you sure you want to reset all settings?
               </h3>
-              <p className="text-sm text-gray-600">
-                This action will restore all settings to their default values. This cannot be undone.
-              </p>
+              <div className="space-y-3 text-sm text-gray-600">
+                <p>
+                  This action will permanently restore all settings to their factory defaults, including:
+                </p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>General preferences and display options</li>
+                  <li>Accessibility settings and customizations</li>
+                  <li>Notification preferences and channels</li>
+                  <li>Export settings and file formats</li>
+                  <li>Privacy controls and data sharing options</li>
+                  <li>Advanced features and developer settings</li>
+                </ul>
+                <p className="font-medium text-red-700">
+                  ⚠️ This action cannot be undone. Your current settings will be permanently lost.
+                </p>
+              </div>
             </div>
           </div>
-          <div className="flex justify-end space-x-3 pt-4">
-            <Button variant="outline" onClick={() => setIsResetModalOpen(false)}>
+
+          {/* Confirmation Input */}
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <label 
+              htmlFor="reset-confirmation" 
+              className="block text-sm font-medium text-red-800 mb-2"
+            >
+              To confirm this action, please type <strong>RESET</strong> in the field below:
+            </label>
+            <input
+              type="text"
+              id="reset-confirmation"
+              value={resetConfirmation}
+              onChange={(e) => setResetConfirmation(e.target.value)}
+              placeholder="Type RESET to confirm"
+              className="w-full px-3 py-2 border border-red-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent focus:outline-none text-sm"
+              aria-describedby="reset-confirmation-help"
+              autoComplete="off"
+            />
+            <p id="reset-confirmation-help" className="mt-1 text-xs text-red-600">
+              This confirmation helps prevent accidental resets
+            </p>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsResetModalOpen(false);
+                setResetConfirmation('');
+              }}
+              className="focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
               Cancel
             </Button>
-            <Button variant="danger" onClick={resetToDefaults}>
-              Reset Settings
+            <Button 
+              variant="danger" 
+              onClick={resetToDefaults}
+              disabled={resetConfirmation !== 'RESET'}
+              className={`focus:ring-2 focus:ring-red-500 focus:ring-offset-2 ${
+                resetConfirmation !== 'RESET' 
+                  ? 'opacity-50 cursor-not-allowed' 
+                  : 'hover:bg-red-700'
+              }`}
+              aria-describedby="reset-button-help"
+            >
+              Reset All Settings
             </Button>
           </div>
+          <p id="reset-button-help" className="text-xs text-gray-500 text-center">
+            Button will be enabled once you type "RESET" above
+          </p>
         </div>
       </Modal>
     </div>
@@ -691,112 +851,233 @@ const AccessibilitySettings: React.FC<{
 const NotificationSettings: React.FC<{
   settings: AppSettings['notifications'];
   onUpdate: (key: string, value: any) => void;
-}> = ({ settings, onUpdate }) => (
-  <div className="space-y-6">
-    <div>
-      <h2 className="text-xl font-semibold text-gray-900 mb-4">Notification Settings</h2>
-      <p className="text-sm text-gray-600 mb-6">
-        Control when and how you receive notifications
-      </p>
+}> = ({ settings, onUpdate }) => {
+  const [notificationChannels, setNotificationChannels] = useState({
+    email: settings.enableEmailNotifications,
+    browser: settings.enableBrowserNotifications,
+    push: false // New channel
+  });
+
+  const handleChannelToggle = (channel: keyof typeof notificationChannels, enabled: boolean) => {
+    setNotificationChannels(prev => ({ ...prev, [channel]: enabled }));
+    
+    // Update the original settings based on channel
+    if (channel === 'email') {
+      onUpdate('enableEmailNotifications', enabled);
+    } else if (channel === 'browser') {
+      onUpdate('enableBrowserNotifications', enabled);
+    }
+  };
+
+  const handleReminderToggle = (type: string, enabled: boolean) => {
+    onUpdate(type, enabled);
+  };
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4" id="notification-settings-heading">
+          Notification Settings
+        </h2>
+        <p className="text-sm text-gray-600 mb-6">
+          Control when and how you receive notifications and reminders
+        </p>
+      </div>
+
+      {/* Reminder Frequency */}
+      <fieldset className="space-y-4">
+        <legend className="text-base font-medium text-gray-900">Reminder Frequency</legend>
+        <div>
+          <label htmlFor="reminder-frequency" className="block text-sm font-medium text-gray-700 mb-2">
+            How often would you like to receive reminders?
+          </label>
+          <select
+            id="reminder-frequency"
+            value={settings.reminderFrequency}
+            onChange={(e) => onUpdate('reminderFrequency', e.target.value)}
+            className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none"
+            aria-describedby="reminder-frequency-description"
+          >
+            <option value="never">Never send reminders</option>
+            <option value="daily">Daily reminders</option>
+            <option value="weekly">Weekly reminders</option>
+            <option value="monthly">Monthly reminders</option>
+          </select>
+          <p id="reminder-frequency-description" className="mt-1 text-sm text-gray-500">
+            Choose how often you want to be reminded about pending tasks
+          </p>
+        </div>
+      </fieldset>
+
+      {/* Notification Channels */}
+      <fieldset className="space-y-4">
+        <legend className="text-base font-medium text-gray-900">Notification Channels</legend>
+        <p className="text-sm text-gray-600 mb-4">
+          Select which channels you'd like to receive notifications through
+        </p>
+        
+        <div className="space-y-3">
+          <div className="flex items-start">
+            <div className="flex items-center h-5">
+              <input
+                type="checkbox"
+                id="browser-notifications"
+                checked={notificationChannels.browser}
+                onChange={(e) => handleChannelToggle('browser', e.target.checked)}
+                className="h-4 w-4 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 border-gray-300 rounded focus:outline-none"
+                aria-describedby="browser-notifications-description"
+              />
+            </div>
+            <div className="ml-3">
+              <label htmlFor="browser-notifications" className="text-sm font-medium text-gray-700">
+                Browser notifications
+              </label>
+              <p id="browser-notifications-description" className="text-sm text-gray-500">
+                Show notifications in your browser when the app is open
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start">
+            <div className="flex items-center h-5">
+              <input
+                type="checkbox"
+                id="email-notifications"
+                checked={notificationChannels.email}
+                onChange={(e) => handleChannelToggle('email', e.target.checked)}
+                className="h-4 w-4 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 border-gray-300 rounded focus:outline-none"
+                aria-describedby="email-notifications-description"
+              />
+            </div>
+            <div className="ml-3">
+              <label htmlFor="email-notifications" className="text-sm font-medium text-gray-700">
+                Email notifications
+              </label>
+              <p id="email-notifications-description" className="text-sm text-gray-500">
+                Receive notifications via email to your registered address
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start">
+            <div className="flex items-center h-5">
+              <input
+                type="checkbox"
+                id="push-notifications"
+                checked={notificationChannels.push}
+                onChange={(e) => handleChannelToggle('push', e.target.checked)}
+                className="h-4 w-4 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 border-gray-300 rounded focus:outline-none"
+                aria-describedby="push-notifications-description"
+              />
+            </div>
+            <div className="ml-3">
+              <label htmlFor="push-notifications" className="text-sm font-medium text-gray-700">
+                Push notifications
+              </label>
+              <p id="push-notifications-description" className="text-sm text-gray-500">
+                Get push notifications on your device even when the app is closed
+              </p>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+
+      {/* Reminder Types */}
+      <fieldset className="space-y-4">
+        <legend className="text-base font-medium text-gray-900">Reminder Types</legend>
+        <p className="text-sm text-gray-600 mb-4">
+          Choose what types of reminders you want to receive
+        </p>
+        
+        <div className="space-y-3">
+          <div className="flex items-start">
+            <div className="flex items-center h-5">
+              <input
+                type="checkbox"
+                id="deadline-alerts"
+                checked={settings.deadlineAlerts}
+                onChange={(e) => handleReminderToggle('deadlineAlerts', e.target.checked)}
+                className="h-4 w-4 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 border-gray-300 rounded focus:outline-none"
+                aria-describedby="deadline-alerts-description"
+              />
+            </div>
+            <div className="ml-3">
+              <label htmlFor="deadline-alerts" className="text-sm font-medium text-gray-700">
+                Deadline alerts
+              </label>
+              <p id="deadline-alerts-description" className="text-sm text-gray-500">
+                Get notified when task deadlines are approaching
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start">
+            <div className="flex items-center h-5">
+              <input
+                type="checkbox"
+                id="team-updates"
+                checked={settings.teamUpdates}
+                onChange={(e) => handleReminderToggle('teamUpdates', e.target.checked)}
+                className="h-4 w-4 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 border-gray-300 rounded focus:outline-none"
+                aria-describedby="team-updates-description"
+              />
+            </div>
+            <div className="ml-3">
+              <label htmlFor="team-updates" className="text-sm font-medium text-gray-700">
+                Team collaboration updates
+              </label>
+              <p id="team-updates-description" className="text-sm text-gray-500">
+                Stay informed about team member activity and shared project changes
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start">
+            <div className="flex items-center h-5">
+              <input
+                type="checkbox"
+                id="template-sharing"
+                checked={settings.templateSharing}
+                onChange={(e) => handleReminderToggle('templateSharing', e.target.checked)}
+                className="h-4 w-4 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 border-gray-300 rounded focus:outline-none"
+                aria-describedby="template-sharing-description"
+              />
+            </div>
+            <div className="ml-3">
+              <label htmlFor="template-sharing" className="text-sm font-medium text-gray-700">
+                Template sharing notifications
+              </label>
+              <p id="template-sharing-description" className="text-sm text-gray-500">
+                Get notified when templates are shared with you or when yours are used
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start">
+            <div className="flex items-center h-5">
+              <input
+                type="checkbox"
+                id="audit-log-changes"
+                checked={settings.auditLogChanges}
+                onChange={(e) => handleReminderToggle('auditLogChanges', e.target.checked)}
+                className="h-4 w-4 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 border-gray-300 rounded focus:outline-none"
+                aria-describedby="audit-log-changes-description"
+              />
+            </div>
+            <div className="ml-3">
+              <label htmlFor="audit-log-changes" className="text-sm font-medium text-gray-700">
+                Audit log changes
+              </label>
+              <p id="audit-log-changes-description" className="text-sm text-gray-500">
+                Receive notifications about important changes to audit logs and compliance
+              </p>
+            </div>
+          </div>
+        </div>
+      </fieldset>
     </div>
-
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Reminder Frequency
-      </label>
-      <select
-        value={settings.reminderFrequency}
-        onChange={(e) => onUpdate('reminderFrequency', e.target.value)}
-        className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-      >
-        <option value="never">Never</option>
-        <option value="daily">Daily</option>
-        <option value="weekly">Weekly</option>
-        <option value="monthly">Monthly</option>
-      </select>
-    </div>
-
-    <div className="space-y-4">
-      <div className="flex items-center">
-        <input
-          type="checkbox"
-          id="browser-notifications"
-          checked={settings.enableBrowserNotifications}
-          onChange={(e) => onUpdate('enableBrowserNotifications', e.target.checked)}
-          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-        />
-        <label htmlFor="browser-notifications" className="ml-2 block text-sm text-gray-700">
-          Enable browser notifications
-        </label>
-      </div>
-
-      <div className="flex items-center">
-        <input
-          type="checkbox"
-          id="email-notifications"
-          checked={settings.enableEmailNotifications}
-          onChange={(e) => onUpdate('enableEmailNotifications', e.target.checked)}
-          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-        />
-        <label htmlFor="email-notifications" className="ml-2 block text-sm text-gray-700">
-          Enable email notifications
-        </label>
-      </div>
-
-      <div className="flex items-center">
-        <input
-          type="checkbox"
-          id="deadline-alerts"
-          checked={settings.deadlineAlerts}
-          onChange={(e) => onUpdate('deadlineAlerts', e.target.checked)}
-          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-        />
-        <label htmlFor="deadline-alerts" className="ml-2 block text-sm text-gray-700">
-          Deadline alerts
-        </label>
-      </div>
-
-      <div className="flex items-center">
-        <input
-          type="checkbox"
-          id="team-updates"
-          checked={settings.teamUpdates}
-          onChange={(e) => onUpdate('teamUpdates', e.target.checked)}
-          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-        />
-        <label htmlFor="team-updates" className="ml-2 block text-sm text-gray-700">
-          Team collaboration updates
-        </label>
-      </div>
-
-      <div className="flex items-center">
-        <input
-          type="checkbox"
-          id="template-sharing"
-          checked={settings.templateSharing}
-          onChange={(e) => onUpdate('templateSharing', e.target.checked)}
-          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-        />
-        <label htmlFor="template-sharing" className="ml-2 block text-sm text-gray-700">
-          Template sharing notifications
-        </label>
-      </div>
-
-      <div className="flex items-center">
-        <input
-          type="checkbox"
-          id="audit-log-changes"
-          checked={settings.auditLogChanges}
-          onChange={(e) => onUpdate('auditLogChanges', e.target.checked)}
-          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-        />
-        <label htmlFor="audit-log-changes" className="ml-2 block text-sm text-gray-700">
-          Audit log changes
-        </label>
-      </div>
-    </div>
-  </div>
-);
+  );
+};
 
 const ExportSettings: React.FC<{
   settings: AppSettings['export'];

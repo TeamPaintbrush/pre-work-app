@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMobileDetection, useSwipeGesture, useLongPress, useVibration } from '../../hooks/useMobile';
 
@@ -79,34 +80,35 @@ const Header: React.FC<HeaderProps> = ({
             {/* Navigation - Desktop */}
             {!isMobile && (
               <nav className="hidden md:flex items-center space-x-8">
-                <motion.a 
-                  href="#dashboard" 
-                  className="text-gray-600 hover:text-gray-900 transition-colors"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Dashboard
-                </motion.a>
-                <motion.a 
-                  href="#templates" 
-                  className="text-gray-600 hover:text-gray-900 transition-colors"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Templates
-                </motion.a>
-                <motion.a 
-                  href="#settings" 
-                  className="text-gray-600 hover:text-gray-900 transition-colors"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Settings
-                </motion.a>
+                <Link href="/">
+                  <motion.span 
+                    className="text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    Dashboard
+                  </motion.span>
+                </Link>
+                <Link href="/templates">
+                  <motion.span 
+                    className="text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    Templates
+                  </motion.span>
+                </Link>
+                <Link href="/settings">
+                  <motion.span 
+                    className="text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    Settings
+                  </motion.span>
+                </Link>
               </nav>
-            )}
-
-            {/* Actions */}
+            )}            {/* Actions */}
             <div className="flex items-center space-x-3">
               {/* Notifications */}
               <motion.button
@@ -125,20 +127,21 @@ const Header: React.FC<HeaderProps> = ({
 
               {/* Profile */}
               {showProfile && (
-                <motion.button
-                  onClick={onProfileClick}
-                  className={`flex items-center space-x-2 p-2 text-gray-600 hover:text-gray-900 transition-colors rounded-md ${
-                    isTouch ? 'min-h-[44px]' : ''
-                  }`}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                    <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  </div>
-                  {!isMobile && <span className="text-sm">Profile</span>}
-                </motion.button>
+                <Link href="/profile">
+                  <motion.div
+                    className={`flex items-center space-x-2 p-2 text-gray-600 hover:text-gray-900 transition-colors rounded-md cursor-pointer ${
+                      isTouch ? 'min-h-[44px]' : ''
+                    }`}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                      <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                    {!isMobile && <span className="text-sm">Profile</span>}
+                  </motion.div>
+                </Link>
               )}
 
               {/* Mobile Menu Button */}
@@ -200,47 +203,64 @@ const Header: React.FC<HeaderProps> = ({
             >
               <div className="p-6 pt-20">
                 <nav className="space-y-4">
-                  <motion.a
-                    href="#dashboard"
-                    className="block py-3 px-4 text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setShowMobileMenu(false)}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 0V3a2 2 0 012-2h4a2 2 0 012 2v4" />
-                      </svg>
-                      <span>Dashboard</span>
-                    </div>
-                  </motion.a>
-                  <motion.a
-                    href="#templates"
-                    className="block py-3 px-4 text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setShowMobileMenu(false)}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                      </svg>
-                      <span>Templates</span>
-                    </div>
-                  </motion.a>
-                  <motion.a
-                    href="#settings"
-                    className="block py-3 px-4 text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setShowMobileMenu(false)}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      <span>Settings</span>
-                    </div>
-                  </motion.a>
+                  <Link href="/">
+                    <motion.div
+                      className="block py-3 px-4 text-gray-900 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setShowMobileMenu(false)}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 0V3a2 2 0 012-2h4a2 2 0 012 2v4" />
+                        </svg>
+                        <span>Dashboard</span>
+                      </div>
+                    </motion.div>
+                  </Link>
+                  <Link href="/templates">
+                    <motion.div
+                      className="block py-3 px-4 text-gray-900 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setShowMobileMenu(false)}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                        <span>Templates</span>
+                      </div>
+                    </motion.div>
+                  </Link>
+                  <Link href="/settings">
+                    <motion.div
+                      className="block py-3 px-4 text-gray-900 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setShowMobileMenu(false)}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span>Settings</span>
+                      </div>
+                    </motion.div>
+                  </Link>
+                  <Link href="/profile">
+                    <motion.div
+                      className="block py-3 px-4 text-gray-900 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setShowMobileMenu(false)}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        <span>Profile</span>
+                      </div>
+                    </motion.div>
+                  </Link>
                 </nav>
 
                 {/* Orientation indicator for development */}
